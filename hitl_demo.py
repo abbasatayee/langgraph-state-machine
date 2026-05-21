@@ -1,9 +1,11 @@
+from dotenv import load_dotenv
 from typing import TypedDict, Literal
 from langgraph.graph import StateGraph, START, END
 from langgraph.types import interrupt, Command
 from langgraph.checkpoint.memory import MemorySaver
 
-
+# Load environment variables from .env file
+load_dotenv()
 class AgentState(TypedDict):
     user_request: str
     proposed_action: str
