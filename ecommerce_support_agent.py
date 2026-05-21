@@ -490,7 +490,7 @@ TOOLS_BY_NAME = {selected_tool.name: selected_tool for selected_tool in TOOLS}
 # 5. Model and orchestrator
 # ============================================================
 
-MODEL_NAME = os.getenv("MODEL_NAME", "openai:gpt-4.1-mini")
+MODEL_NAME = os.getenv("MODEL_NAME", "ollama:minimax-m2.5:cloud")
 MAX_TOOL_CALLS = int(os.getenv("MAX_TOOL_CALLS", "10"))
 
 model = init_chat_model(MODEL_NAME, temperature=0)
