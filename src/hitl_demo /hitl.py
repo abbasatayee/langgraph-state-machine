@@ -1,9 +1,13 @@
+import atexit
+import sqlite3
+from pathlib import Path
+
 from dotenv import load_dotenv
 from typing import TypedDict, Literal, Any
 
 from langgraph.graph import StateGraph, START, END
 from langgraph.types import interrupt, Command
-from langgraph.checkpoint.memory import MemorySaver
+from langgraph.checkpoint.sqlite import SqliteSaver
 
 # This file is often run directly while learning:
 #   python "src/hitl_demo /hitl.py"
@@ -13,7 +17,6 @@ from langgraph.checkpoint.memory import MemorySaver
 try:
     from .utils import export_graph_image
 except ImportError:
-    from pathlib import Path
     import sys
 
     sys.path.append(str(Path(__file__).resolve().parent))
@@ -259,7 +262,12 @@ builder.add_edge("tool_node", END)
 builder.add_edge("rejected_node", END)
 builder.add_edge("blocked_node", END)
 
-graph = builder.compile(checkpointer=MemorySaver())
+CHECKPOINT_DB_PATH = Path(__file__).resolve().parent / "checkpoints.sqlite"
+checkpoint_conn = sqlite3.connect(str(CHECKPOINT_DB_PATH), check_same_thread=False)
+atexit.register(checkpoint_conn.close)
+
+checkpointer = SqliteSaver(checkpoint_conn)
+graph = builder.compile(checkpointer=checkpointer)
 
 export_graph_image(graph, "middleware_hitl_graph.png")
 
@@ -310,11 +318,31 @@ def build_resume_value(decision: str):
     raise ValueError("Invalid decision")
 
 
+def resume_graph_with_human_decision(decision: str):
+    resume_value = build_resume_value(decision)
+
+    config = {
+        "configurable": {
+            "thread_id": "pure-langgraph-middleware-hitl-demo",
+            "checkpoint_id": "1f155189-c891-6320-8002-150e5936b767",
+        }
+    }
+
+    return graph.invoke(
+        Command(resume=resume_value),
+        config=config
+    )
+
 # --------------------------------------------------
 # 11. Run demo
 # --------------------------------------------------
 
 if __name__ == "__main__":
+
+    # resume_graph_with_human_decision("approve")
+
+    # exit()
+
     config = {
         "configurable": {
             "thread_id": "pure-langgraph-middleware-hitl-demo"
@@ -354,7 +382,7 @@ if __name__ == "__main__":
 
         final_result = graph.invoke(
             Command(resume=resume_value),
-            config=config
+            config=config , 
         )
 
         print("\n--- Final result ---")
